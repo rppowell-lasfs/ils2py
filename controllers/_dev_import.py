@@ -3,7 +3,7 @@ import xlrd
 import ils2py
 import ils2py.import_library_books_xls
 
-def import_library_from_xls():
+def import_library_books_from_xls():
     messages = ["Importing XLS"]
     form = FORM(
         INPUT(_name='xls',_type='file'),
@@ -102,6 +102,6 @@ def import_library_from_xls():
     elif form.errors:
         response.flash = 'form has errors'
 
-    return dict(form=form, message=PRE("\n".join(messages)))
+    return dict(form=form, data=data, message=PRE("\n".join(messages)))
 
 
