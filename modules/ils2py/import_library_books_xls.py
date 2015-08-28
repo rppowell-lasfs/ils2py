@@ -47,6 +47,70 @@ row_index_DONOR     = 16;  str_DONOR     = 'Donor'
 row_index_MSRP      = 18;  str_MSRP      = 'MSRP'
 
 
+class BookEntry:
+    def __init__(self, index, row, xlrdworkbook):
+        logger = logging.getLogger("import_library_books_xls.BookEntry.__init__()")
+        logger.setLevel(logging.DEBUG)
+
+        self.row = row
+        self.entry={}
+
+        for n,i,t in [
+                ('CK_OUT',    0, 'DATE'),
+                ('DUE',       1, 'DATE'),
+                ('WHO',       2, 'TEXT'),
+                ('LIB',       3, 'TEXT'),
+                ('RETURN',    4, 'DATE'),
+                ('LOCATION',  5, 'TEXT'),
+                ('TYPE',      6, 'TEXT'),
+                ('NUMBER',    7, 'NUMBER'),
+                ('TITLE',     8, 'TEXT'),
+                ('AUTHOR',    9, 'TEXT'),
+                ('COAUTHOR', 10, 'TEXT'),
+                ('COMMENTS', 11, 'TEXT'),
+                ('PUBLISHER',12, 'TEXT'),
+                ('SERIES',   13, 'TEXT'),
+                ('ENTERED',  14, 'TEXT'),
+                ('ISBN',     15, 'TEXT'),
+                ('DONOR',    16, 'TEXT'),
+                ('MSRP',     17, 'TEXT'),
+
+        ]:
+            cell = row[i]
+            if t=='TEXT':
+                if (cell.ctype == xlrd.XL_CELL_TEXT):
+                    self.entry[n] = cell.value.encode('utf-8')
+                elif (cell.ctype == xlrd.XL_CELL_EMPTY):
+                    #logger.debug(" ".join((str(x) for x in (n, cell, index, row))))
+                    self.entry[n] = None
+                else:
+                    #logger.debug(" ".join((str(x) for x in (n, cell, index, row))))
+                    self.entry[n] = None
+            elif t=='NUMBER':
+                if (cell.ctype == xlrd.XL_CELL_NUMBER):
+                    self.entry[n] = int(cell.value)
+                elif (cell.ctype == xlrd.XL_CELL_EMPTY):
+                    self.entry[n] = None
+                else:
+                    logger.debug("ctype != xlrd.XL_CELL_NUMBER:" + str(cell.ctype))
+                    logger.debug(" ".join((str(x) for x in (n, cell, index, row))))
+                    self.entry[n] = None
+            elif t=='DATE':
+                if (cell.ctype == xlrd.XL_CELL_DATE and cell.value != ''):
+                    self.entry[n] = datetime.datetime(*xlrd.xldate_as_tuple(cell.value, xlrdworkbook.datemode))
+                elif (cell.ctype == xlrd.XL_CELL_TEXT):
+                    if (cell.value == '' or cell.value == ' '):
+                        self.entry[n] = None
+                    else:
+                        logger.debug(" ".join((str(x) for x in (n, cell, index, row))))
+                        self.entry[n] = None
+                elif (cell.ctype == xlrd.XL_CELL_EMPTY):
+                    self.entry[n] = None
+                else:
+                    logger.debug("ctype != xlrd.XL_CELL_DATE:" + str(cell.ctype))
+                    logger.debug(" ".join((str(x) for x in (n, cell, index, row))))
+                    self.entry[n] = None
+        
 def check_headers(xlrdworkbook):
     logger = logging.getLogger("import_library_books_xls.check_headers")
     logger.setLevel(logging.DEBUG)
@@ -74,130 +138,21 @@ def process_row_data(sheet, i, xlrdworkbook):
         (row[row_index_TITLE].ctype == xlrd.XL_CELL_EMPTY)):
         return {}
 
-    number_cell = row[row_index_NUMBER]
-    if (number_cell.ctype != xlrd.XL_CELL_NUMBER):
-        logger.debug("number_cell.ctype != xlrd.XL_CELL_NUMBER; number_cell.ctype=" + str(number_cell.ctype))
-        logger.debug(" ".join((str(x) for x in (number_cell, i, row))))
-        return {}
-    else:
-        entry['number'] = int(number_cell.value)
+    b = BookEntry(i, row, xlrdworkbook)
 
-    location_cell = row[row_index_LOCATION]
-    if (location_cell.ctype != xlrd.XL_CELL_TEXT):
-        logger.debug("location_cell.ctype != xlrd.XL_CELL_TEXT; location_cell.ctype=" + str(location_cell.ctype))
-        logger.debug(" ".join((str(x) for x in (location_cell, i, row))))
-        return {}
-    elif (location_cell.ctype == xlrd.XL_CELL_EMPTY):
-        logger.debug("location_cell.ctype == xlrd.XL_CELL_EMPTY; location_cell.ctype=" + str(location_cell.ctype))
-        logger.debug(" ".join((str(x) for x in (location_cell, i, row))))
-        return {}
-    else:
-        entry['location'] = location_cell.value.encode('utf-8')
-
-    type_cell = row[row_index_TYPE]
-    if not (type_cell.ctype == xlrd.XL_CELL_EMPTY or type_cell.ctype == xlrd.XL_CELL_TEXT):
-        logger.debug("type_cell check -- !(type_cell.ctype == xlrd.XL_CELL_EMPTY or xlrd.XL_CELL_TEXT; type_cell.ctype=" + str(type_cell.ctype))
-        logger.debug(" ".join((str(x) for x in (type_cell, i, row))))
-        return {}
-    else:
-        entry['type'] = type_cell.value.encode('utf-8')
-
-    title_cell = row[row_index_TITLE]
-    if (title_cell.ctype != xlrd.XL_CELL_TEXT):
-        logger.debug("title_cell.ctype != xlrd.XL_CELL_TEXT; title_cell.ctype=" + str(title_cell.ctype))
-        logger.debug(" ".join((str(x) for x in ('TITLE', i, title_cell, row))))
-        return {}
-    else:
-        entry['title'] = title_cell.value.encode('utf-8')
-
-    author_cell = row[row_index_AUTHOR]
-    if author_cell.value != '':
-        entry['author'] = author_cell.value.encode('utf-8')
-
-    coauthor_cell = row[row_index_COAUTHOR]
-    if coauthor_cell.value != '':
-        entry['coauthor'] = coauthor_cell.value.encode('utf-8')
-
-    comments_cell = row[row_index_COMMENTS]
-    if (comments_cell.ctype == xlrd.XL_CELL_TEXT):
-        if comments_cell.value != '':
-            entry['comments'] = comments_cell.value.encode('utf-8') 
-    elif (comments_cell.ctype == xlrd.XL_CELL_NUMBER):
-        entry['comments'] = str(comments_cell.value)
-
-    publisher_cell = row[row_index_PUBLISHER]
-    if (publisher_cell.ctype == xlrd.XL_CELL_TEXT):
-        if publisher_cell.value != '':
-            entry['publisher'] = publisher_cell.value.encode('utf-8')
-    elif (publisher_cell.ctype == xlrd.XL_CELL_NUMBER):
-        entry['publisher'] = str(publisher_cell.value)
-    elif (publisher_cell.ctype == xlrd.XL_CELL_EMPTY):
-        entry['publisher'] = ''
-    else:
-        print 'publisher', i, publisher_cell
-
-    series_cell = row[row_index_SERIES]
-    if (series_cell.ctype == xlrd.XL_CELL_TEXT):
-        if series_cell.value != '':
-            entry['series'] = series_cell.value.encode('utf-8') 
-    elif (series_cell.ctype == xlrd.XL_CELL_NUMBER):
-        entry['series'] = str(series_cell.value)
-
-
-    # circurlation info
-    out_cell = row[row_index_CK_OUT]
-    if (out_cell.ctype == xlrd.XL_CELL_DATE and out_cell.value != ''):
-        entry['OUT'] = datetime.datetime(*xlrd.xldate_as_tuple(out_cell.value, xlrdworkbook.datemode))
-    elif (out_cell.ctype == xlrd.XL_CELL_TEXT and out_cell.value == ''):
-        pass
-    elif (out_cell.ctype == xlrd.XL_CELL_TEXT and out_cell.value == ' '):
-        pass
-    elif (out_cell.ctype == xlrd.XL_CELL_EMPTY):
-        pass
-    else:
-        logger.debug(" ".join((str(x) for x in ('OUT', i, out_cell, row))))
-
-    due_cell = row[row_index_DUE]
-    if (due_cell.ctype == xlrd.XL_CELL_DATE and due_cell.value != ''):
-        entry['DUE'] = datetime.datetime(*xlrd.xldate_as_tuple(due_cell.value, xlrdworkbook.datemode))
-    elif (due_cell.ctype == xlrd.XL_CELL_TEXT and due_cell.value == ''):
-        pass
-    elif (due_cell.ctype == xlrd.XL_CELL_TEXT and due_cell.value == ' '):
-        pass
-    elif (due_cell.ctype == xlrd.XL_CELL_EMPTY):
-        pass
-    else:
-        logger.debug(" ".join((str(x) for x in ('DUE', i, due_cell, row))))
-
-    who_cell = row[row_index_WHO]
-    if (who_cell.ctype == xlrd.XL_CELL_TEXT and who_cell.value != ''):
-        entry['WHO'] = who_cell.value.encode('utf-8')
-    elif (who_cell.ctype == xlrd.XL_CELL_EMPTY):
-        pass
-    else:
-        logger.debug(" ".join((str(x) for x in ('WHO', i, who_cell, row))))
-
-    lib_cell = row[row_index_LIB]
-    if (lib_cell.ctype == xlrd.XL_CELL_TEXT and lib_cell.value != ''):
-        entry['LIB'] = lib_cell.value.encode('utf-8')
-    elif (lib_cell.ctype == xlrd.XL_CELL_NUMBER):
-        entry['LIB'] = str(lib_cell.value).encode('utf-8')
-    elif (lib_cell.ctype == xlrd.XL_CELL_EMPTY):
-        pass
-    else:
-        logger.debug(" ".join((str(x) for x in ('LIB', i, lib_cell, row))))
-
-    return_cell = row[row_index_RETURN]
-    if (return_cell.ctype == xlrd.XL_CELL_DATE and return_cell.value != ''):
-        entry['RETURN'] = datetime.datetime(*xlrd.xldate_as_tuple(return_cell.value, xlrdworkbook.datemode))
-    elif (return_cell.ctype == xlrd.XL_CELL_TEXT and return_cell.value == ''):
-        pass
-    elif (return_cell.ctype == xlrd.XL_CELL_TEXT and return_cell.value == ' '):
-        pass
-    elif (return_cell.ctype == xlrd.XL_CELL_EMPTY):
-        pass
-    else:
-        logger.debug(" ".join((str(x) for x in ('RETURN', i, return_cell, row))))
+    entry['number'] = b.entry.get('NUMBER', None)
+    entry['location'] = b.entry.get('LOCATION', None)
+    entry['type'] = b.entry.get('TYPE', None)
+    entry['title'] = b.entry.get('TITLE', None)
+    entry['author'] = b.entry.get('AUTHOR', None)
+    entry['coauthor'] = b.entry.get('COAUTHOR', None)
+    entry['comments'] = b.entry.get('COMMENTS', None)
+    entry['publisher'] = b.entry.get('PUBLISHER', None)
+    entry['series'] = b.entry.get('SERIES', None)
+    entry['OUT'] = b.entry.get('CK_OUT', None)
+    entry['DUE'] = b.entry.get('DUE', None)
+    entry['WHO'] = b.entry.get('WHO', None)
+    entry['RETURN'] = b.entry.get('RETURN', None)
 
     return entry
 
@@ -288,7 +243,7 @@ def import_library_books_xls(xlrdworkbook):
         for i, entry in enumerate(entries):
             print i, entry
 
-    if (True):
+    if (False):
         print "\nduplicate_entries:", duplicate_entries
         print "\t".join(('number', 'index', 'author', 'title'))
         for k in duplicate_entries:
