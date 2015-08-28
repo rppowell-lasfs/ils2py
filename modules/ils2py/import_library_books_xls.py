@@ -23,7 +23,7 @@ column_names = [
     'COAUTHOR',
     'COMMENTS',
     'PUBLISHER',
-    'SERIES'
+    'SERIES',
     'ENTERED'
 ]
 
@@ -42,6 +42,9 @@ row_index_COMMENTS  = 11;  str_COMMENTS  = 'COMMENTS'
 row_index_PUBLISHER = 12;  str_PUBLISHER = 'PUBLISHER'
 row_index_SERIES    = 13;  str_SERIES    = 'SERIES'
 row_index_ENTERED   = 14;  str_ENTERED   = 'ENTERED'
+row_index_ISBN      = 15;  str_ISBN      = 'ISBN'
+row_index_DONOR     = 16;  str_DONOR     = 'Donor'
+row_index_MSRP      = 18;  str_MSRP      = 'MSRP'
 
 
 def check_headers(xlrdworkbook):
@@ -93,7 +96,7 @@ def process_row_data(sheet, i, xlrdworkbook):
 
     type_cell = row[row_index_TYPE]
     if not (type_cell.ctype == xlrd.XL_CELL_EMPTY or type_cell.ctype == xlrd.XL_CELL_TEXT):
-        logger.debug("!(type_cell.ctype == xlrd.XL_CELL_EMPTY or xlrd.XL_CELL_TEXT; type_cell.ctype=" + str(type_cell.ctype))
+        logger.debug("type_cell check -- !(type_cell.ctype == xlrd.XL_CELL_EMPTY or xlrd.XL_CELL_TEXT; type_cell.ctype=" + str(type_cell.ctype))
         logger.debug(" ".join((str(x) for x in (type_cell, i, row))))
         return {}
     else:
@@ -108,21 +111,37 @@ def process_row_data(sheet, i, xlrdworkbook):
         entry['title'] = title_cell.value.encode('utf-8')
 
     author_cell = row[row_index_AUTHOR]
-    entry['author'] = author_cell.value.encode('utf-8') if author_cell.value != '' else ''
+    if author_cell.value != '':
+        entry['author'] = author_cell.value.encode('utf-8')
 
     coauthor_cell = row[row_index_COAUTHOR]
-    entry['coauthor'] = coauthor_cell.value.encode('utf-8') if coauthor_cell.value != '' else ''
+    if coauthor_cell.value != '':
+        entry['coauthor'] = coauthor_cell.value.encode('utf-8')
+
+    comments_cell = row[row_index_COMMENTS]
+    if (comments_cell.ctype == xlrd.XL_CELL_TEXT):
+        if comments_cell.value != '':
+            entry['comments'] = comments_cell.value.encode('utf-8') 
+    elif (comments_cell.ctype == xlrd.XL_CELL_NUMBER):
+        entry['comments'] = str(comments_cell.value)
 
     publisher_cell = row[row_index_PUBLISHER]
     if (publisher_cell.ctype == xlrd.XL_CELL_TEXT):
-        entry['publisher'] = publisher_cell.value.encode('utf-8') if publisher_cell.value != '' else ''
+        if publisher_cell.value != '':
+            entry['publisher'] = publisher_cell.value.encode('utf-8')
     elif (publisher_cell.ctype == xlrd.XL_CELL_NUMBER):
         entry['publisher'] = str(publisher_cell.value)
     elif (publisher_cell.ctype == xlrd.XL_CELL_EMPTY):
         entry['publisher'] = ''
     else:
         print 'publisher', i, publisher_cell
-        entry['publisher'] = ''
+
+    series_cell = row[row_index_SERIES]
+    if (series_cell.ctype == xlrd.XL_CELL_TEXT):
+        if series_cell.value != '':
+            entry['series'] = series_cell.value.encode('utf-8') 
+    elif (series_cell.ctype == xlrd.XL_CELL_NUMBER):
+        entry['series'] = str(series_cell.value)
 
 
     # circurlation info
@@ -234,19 +253,22 @@ def import_library_books_xls(xlrdworkbook):
             entries.append(entry)
 
         # bibliography info
-        entry_authors[entry['author']] = \
-            entry_authors.get(entry['author'], []) + [entry['number']]
+        if 'author' in entry:
+            entry_authors[entry['author']] = \
+                entry_authors.get(entry['author'], []) + [entry['number']]
+    
+        if 'coauthor' in entry:
+            entry_coauthors[entry['coauthor']] = \
+                entry_coauthors.get(entry['coauthor'], []) + [entry['number']]
+    
+        if 'publisher' in entry:
+            entry_publishers[entry['publisher']] = \
+                entry_publishers.get(entry['publisher'], []) + [entry['publisher']]
 
-        entry_coauthors[entry['coauthor']] = \
-            entry_coauthors.get(entry['coauthor'], []) + [entry['number']]
-
-        entry_publishers[entry['publisher']] = \
-            entry_publishers.get(entry['publisher'], []) + [entry['publisher']]
-
+        # circulation info
         if 'WHO' in entry:
             entry_members[entry['WHO']] = \
                 entry_members.get(entry['WHO'], []) + [entry['number']]
-
 
         if 'LIB' in entry:
             entry_librarians[entry['LIB']] = \
@@ -261,13 +283,14 @@ def import_library_books_xls(xlrdworkbook):
                 circulation = entry.copy()
                 circulations.append(entry)
 
-    if (True):
+    if (False):
         print "\nentries:"
         for i, entry in enumerate(entries):
             print i, entry
 
     if (True):
         print "\nduplicate_entries:", duplicate_entries
+        print "\t".join(('number', 'index', 'author', 'title'))
         for k in duplicate_entries:
             i = k[0];
             i1 = k[1][0]
@@ -275,59 +298,59 @@ def import_library_books_xls(xlrdworkbook):
             print "\t".join((str(i), str(i1+1), sheet.row(i1)[row_index_AUTHOR].value, sheet.row(i1)[row_index_TITLE].value))
             print "\t".join((str(i), str(i2+1), sheet.row(i2)[row_index_AUTHOR].value, sheet.row(i2)[row_index_TITLE].value))
 
-    if (True):
+    if (False):
         print "\nentry_locations:"
         for t in sorted([key for key in entry_locations.keys()]):
             print "'{}'".format(t), len(entry_locations[t]), entry_locations[t] if (len(entry_locations[t]) < 10) else entry_locations[t][:10] + ["..."]
 
-    if (True):
+    if (False):
         print "\nentry_types:"
         for t in sorted([key for key in entry_types.keys()]):
             print "'{}'".format(t), len(entry_types[t]), entry_types[t] if (len(entry_types[t]) < 10) else entry_types[t][:10] + ["..."]
 
     # bibliography
-    if (True):
+    if (False):
         print "\nentry_authors:"
         for t in sorted([key for key in entry_authors.keys()]):
             print "'{}'".format(t), len(entry_authors[t]), entry_authors[t] if (len(entry_authors[t]) < 10) else entry_authors[t][:10] + ["..."]
 
-    if (True):
+    if (False):
         print "\nentry_coauthors:"
         for t in sorted([key for key in entry_coauthors.keys()]):
             print "'{}'".format(t), len(entry_coauthors[t]), entry_coauthors[t] if (len(entry_coauthors[t]) < 10) else entry_coauthors[t][:10] + ["..."]
 
-    if (True):
+    if (False):
         print "\nentry_publishers:"
         for t in sorted([key for key in entry_publishers.keys()]):
             print "'{}'".format(t), len(entry_publishers[t]), entry_publishers[t] if (len(entry_publishers[t]) < 10) else entry_publishers[t][:10] + ["..."]
 
     # circulation
-    if (True):
+    if (False):
         print "\nentry_members:"
         for t in sorted([key for key in entry_members.keys()]):
             print "'{}'".format(t), len(entry_members[t]), entry_members[t] if (len(entry_members[t]) < 10) else entry_members[t][:10] + ["..."]
 
-    if (True):
+    if (False):
         print "\nentry_librarians:"
         for t in sorted([key for key in entry_librarians.keys()]):
             print "'{}'".format(t), len(entry_librarians[t]), entry_librarians[t] if (len(entry_librarians[t]) < 10) else entry_librarians[t][:10] + ["..."]
 
-    if (True):
+    if (False):
         print "\ncirculations:"
         for i, circulation in enumerate(circulations):
             print i, circulation
 
     return {
         # 'raw_entries': raw_entries,
-        'entries': entries,
+#        'entries': entries,
         'duplicates': duplicate_entries,
-        'locations': entry_locations,
-        'types': entry_types,
-        'authors': entry_authors,
-        'coauthors': entry_coauthors,
-        'publishers': entry_publishers,
-        'members': entry_members,
-        'librarians': entry_librarians,
-        'circulations': circulations,
+#        'locations': entry_locations,
+#        'types': entry_types,
+#        'authors': entry_authors,
+#        'coauthors': entry_coauthors,
+#        'publishers': entry_publishers,
+#        'members': entry_members,
+#        'librarians': entry_librarians,
+#        'circulations': circulations,
     }
 

@@ -42,7 +42,7 @@ def db_setup_scaffolding():
             ('ils_item_location', ils2py.db_defaults.ILS_ITEM_LOCATIONS), 
             ('ils_item_state', ils2py.db_defaults.ILS_ITEM_STATES), 
             ('ils_item_event_type', ils2py.db_defaults.ILS_ITEM_EVENT_TYPES), 
-            ('ils_person_type', ils2py.db_defaults.ILS_PERSON_TYPES), 
+            ('ils_item_x_person_type', ils2py.db_defaults.ILS_ITEM_X_PERSON_TYPES), 
     ]:
         for i in s:
             db[n].insert(

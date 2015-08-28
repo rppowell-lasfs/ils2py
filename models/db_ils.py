@@ -23,14 +23,16 @@ db.define_table(
     format = '%(full_name)s'
 )
 
-################################################################################
 
 db.define_table(
-    'ils_person_type',
+    'ils_item_x_person_type',
     Field('name'),
     Field('description'),
     format = '%(name)s'
 )
+
+################################################################################
+
 db.define_table(
     'ils_item_type',
     Field('name', 'string'),
@@ -39,7 +41,6 @@ db.define_table(
 )
 
 sorted_ils_item_types = sorted(db(db.ils_item_type.id > 0).select(), key=lambda x: natural_key(x.name))
-
 
 db.define_table(
     'ils_item_location',
@@ -106,6 +107,19 @@ db.define_table(
     Field('checked_in_by', db.auth_user),
 )
 
+db.define_table(
+    'ils_item_tag',
+    Field('name', 'string'),
+    Field('description', 'string'),
+    Field('parent', 'reference ils_item_tag')
+)
+
+db.define_table(
+    'ils_item_x_item_tag',
+    Field('ils_item', db.ils_item),
+    Field('ils_item_tag', db.ils_item)
+)
+
 ################################################################################
 
 
@@ -113,5 +127,5 @@ db.define_table(
     'ils_item_x_person',
     Field('item', db.ils_item),
     Field('person', db.ils_person),
-    Field('relationship', db.ils_person_type),
+    Field('relationship', db.ils_item_x_person_type),
 )

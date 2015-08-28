@@ -25,7 +25,7 @@ def import_library_books_from_xls():
         ils2py.import_library_books_xls.check_headers(book)
         data = ils2py.import_library_books_xls.import_library_books_xls(book)
 
-        # bibliographies
+        # import bibliographies to database
         if (False):
             if (True):
                 for t in data['types']:
@@ -57,6 +57,7 @@ def import_library_books_from_xls():
                         db.ils_person.insert(full_name=author)
                         messages.append("inserting bibliography_person '%s'"%(author))
 
+            # import items to database
             if (True):
                 messages.append("processing %d entries"%(len(data['entries'])))
                 for i, entry in enumerate(data['entries']):
@@ -99,6 +100,7 @@ def import_library_books_from_xls():
                         messages.append("auth_user inserting %s"%(librarian))
 
         # disable toolbar - binary file upload gets in the way
+
     elif form.errors:
         response.flash = 'form has errors'
 

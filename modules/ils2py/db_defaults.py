@@ -92,6 +92,7 @@ ILS_ITEM_STATES = [
     { 'name':"AVAILABLE", 'description':""},
     { 'name':"CHECKEDOUT", 'description':""},
     { 'name':"RESERVED", 'description':""},
+    { 'name':"MISSING", 'description':""},
     { 'name':"LOST", 'description':""},
 ]
 
@@ -104,7 +105,7 @@ ILS_ITEM_EVENT_TYPES = [
 ]
 
 
-ILS_PERSON_TYPES = [
+ILS_ITEM_X_PERSON_TYPES = [
     { 'name':"Author", 'description':""},
     { 'name':"Co-Author", 'description':""},
     { 'name':"Editor", 'description':""},
