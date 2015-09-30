@@ -22,8 +22,11 @@ def import_library_books_from_xls():
         #print str(request._vars['xls'])
         #print str(response._vars)
 
-        ils2py.import_library_books_xls.check_headers(book)
+        #ils2py.import_library_books_xls.check_headers(book)
+        ils2py.import_library_books_xls.BookEntry.check_sheet(book.sheet_by_index(0))
         data = ils2py.import_library_books_xls.import_library_books_xls(book)
+
+        #data = ils2py.import_library_books_xls.import_library_magazines_xls(book)
 
         # import bibliographies to database
         if (False):

@@ -9,13 +9,19 @@ def natural_key(string_):
 ################################################################################
 
 db.define_table(
-    'ils_publisher',
+    'ils_biblio',
+    Field('title'),
+    Field('isbn1'),
+)
+
+db.define_table(
+    'ils_biblio_publisher',
     Field('name'),
     format = '%(name)s'
 )
 
 db.define_table(
-    'ils_person',
+    'ils_biblio_person',
     Field('full_name'),
     Field('search_name'),
     Field('first_name'),
@@ -23,12 +29,34 @@ db.define_table(
     format = '%(full_name)s'
 )
 
-
 db.define_table(
-    'ils_item_x_person_type',
+    'ils_biblio_person_type',
     Field('name'),
     Field('description'),
     format = '%(name)s'
+)
+
+db.define_table(
+    'ils_biblio_x_person',
+    Field('ils_biblio', db.ils_biblio),
+    Field('ils_biblio_person', db.ils_biblio_person),
+    Field('ils_biblio_person_type', db.ils_biblio_person_type),
+)
+
+#db.ils_biblio_x_person.ils_biblio.requires=IS_IN_DB(db,'ils_biblio', '%(title)s'))
+#db.ils_biblio_x_person.ils_biblio_person_type.requires=IS_EMPTY_OR(IS_IN_DB(db,'ils_bibio_person_type', '%(name)s'))
+
+db.define_table(
+    'ils_biblio_tag',
+    Field('name', 'string'),
+    Field('description', 'string'),
+    Field('parent', 'reference ils_biblio_tag')
+)
+
+db.define_table(
+    'ils_biblio_x_tag',
+    Field('ils_biblio', db.ils_biblio),
+    Field('ils_biblio_tag', db.ils_biblio_tag)
 )
 
 ################################################################################
@@ -60,6 +88,20 @@ db.define_table(
 )
 
 db.define_table(
+    'ils_publisher',
+    Field('name', 'string'),
+    Field('description', 'string'),
+    format = '%(name)s'
+)
+
+db.define_table(
+    'ils_person',
+    Field('name', 'string'),
+    format = '%(name)s'
+)
+
+
+db.define_table(
     'ils_item',
     Field('item_id', 'string'),
     Field('item_title', 'string'),
@@ -68,8 +110,6 @@ db.define_table(
     Field('item_state', db.ils_item_state),
     Field('item_publisher', db.ils_publisher),
     Field('item_author', db.ils_person),
-    Field('item_isbn10', 'string'),
-    Field('item_isbn13', 'string'),
     format = '%(item_id)s:%(item_title)s'
 )
 
@@ -122,10 +162,3 @@ db.define_table(
 
 ################################################################################
 
-
-db.define_table(
-    'ils_item_x_person',
-    Field('item', db.ils_item),
-    Field('person', db.ils_person),
-    Field('relationship', db.ils_item_x_person_type),
-)
