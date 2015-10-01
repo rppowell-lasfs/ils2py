@@ -6,9 +6,32 @@ import datetime
 
 import logging
 
+"""
+
+Modules for importing the library from xls spreadsheet
+
+xls spreadsheet row  -->  entry
+
+RawEntry
+* Invalid Data - TEXT
+** is not XL_CELL_TEXT
+** is XL_CELL_EMPTY
+
+* Invalid Data - DATE
+* Invalid Data - NUMBER
+
+
+"""
+
+
 logger = logging.getLogger("web2py.app.ils2py.import_library_books_xls")
 logger.setLevel(logging.DEBUG)
 
+class RawEntryDataType:
+    def __init__(self, column_name, index, datatype):
+        self.column_name = column_name
+        self.index=index
+        self.datatype=datatype
 
 class RawEntry:
     ENTRY_FORMAT=[]
@@ -25,6 +48,7 @@ class RawEntry:
             if t=='TEXT':
                 if (cell.ctype == xlrd.XL_CELL_TEXT):
                     self.entry[n] = cell.value.encode('utf-8')
+                    #logger.info(str(i)+":"+" ".join((str(x) for x in (n, cell, index, row))))
                 elif (cell.ctype == xlrd.XL_CELL_EMPTY):
                     #logger.debug(" ".join((str(x) for x in (n, cell, index, row))))
                     self.entry[n] = None
@@ -34,6 +58,7 @@ class RawEntry:
             elif t=='NUMBER':
                 if (cell.ctype == xlrd.XL_CELL_NUMBER):
                     self.entry[n] = int(cell.value)
+                    #logger.info(str(i)+":"+" ".join((str(x) for x in (n, cell, index, row))))
                 elif (cell.ctype == xlrd.XL_CELL_EMPTY):
                     self.entry[n] = None
                 else:
@@ -43,6 +68,7 @@ class RawEntry:
             elif t=='DATE':
                 if (cell.ctype == xlrd.XL_CELL_DATE and cell.value != ''):
                     self.entry[n] = datetime.datetime(*xlrd.xldate_as_tuple(cell.value, xlrdworkbook.datemode))
+                    #logger.info(str(i)+":"+" ".join((str(x) for x in (n, cell, index, row))))
                 elif (cell.ctype == xlrd.XL_CELL_TEXT):
                     if (cell.value == '' or cell.value == ' '):
                         self.entry[n] = None
@@ -58,6 +84,34 @@ class RawEntry:
 
 
 class BookEntry(RawEntry):
+    """
+    circulation info:
+            ('CK_OUT',    0, 'DATE'),
+            ('DUE',       1, 'DATE'),
+            ('WHO',       2, 'TEXT'),
+            ('LIB',       3, 'TEXT'),
+            ('RETURN',    4, 'DATE'),
+            ('ENTERED',  14, 'TEXT'),
+            ('ISBN',     15, 'TEXT'),
+            ('DONOR',    16, 'TEXT'),
+            ('MSRP',     17, 'TEXT'),
+
+    item info:
+            ('LOCATION',  5, 'TEXT'),
+            ('NUMBER',    7, 'NUMBER'),
+
+    bibio info:
+            ('TYPE',      6, 'TEXT'),
+            ('TITLE',     8, 'TEXT'),
+            ('AUTHOR',    9, 'TEXT'),
+            ('COAUTHOR', 10, 'TEXT'),
+            ('COMMENTS', 11, 'TEXT'),
+            ('PUBLISHER',12, 'TEXT'),
+            ('SERIES',   13, 'TEXT'),
+    ]
+
+    """
+
     row_index_CK_OUT    =  0;  str_CK_OUT    = 'CK_OUT'
     row_index_DUE       =  1;  str_DUE       = 'DUE'
     row_index_WHO       =  2;  str_WHO       = 'WHO'
@@ -76,6 +130,7 @@ class BookEntry(RawEntry):
     row_index_ISBN      = 15;  str_ISBN      = 'ISBN'
     row_index_DONOR     = 16;  str_DONOR     = 'Donor'
     row_index_MSRP      = 18;  str_MSRP      = 'MSRP'
+
     ENTRY_FORMAT=[
             ('CK_OUT',    0, 'DATE'),
             ('DUE',       1, 'DATE'),
@@ -100,7 +155,6 @@ class BookEntry(RawEntry):
     def __init__(self, index, row, xlrdworkbook):
         logger = logging.getLogger("import_library_books_xls."+self.__class__.__name__+".__init__()")
         logger.setLevel(logging.DEBUG)
-
         self.extract_data(index, row, xlrdworkbook)
 
     @staticmethod
@@ -169,6 +223,34 @@ class BookEntry(RawEntry):
         return entry
 
 class MagazineEntry(RawEntry):
+    """
+    circulation info
+            ('OUT',        0, 'DATE'),
+            ('DUE',        1, 'DATE'),
+            ('WHO',        2, 'TEXT'),
+            ('LIB',        3, 'TEXT'),
+            ('RETURNED',   4, 'DATE'),
+
+    item info:
+            ('Discard',    5, 'TEXT'),
+            ('LOCATION',   6, 'TEXT'),
+            ('NUMBER',     7, 'NUMBER'),
+            ('COMMENTS1', 14, 'TEXT'),
+
+    bibio info:
+            ('TITLE',      8, 'TEXT'),
+            ('YEAR',       9, 'TEXT'),
+            ('MONTH',     10, 'TEXT'),
+            ('VOLUME',    11, 'TEXT'),
+            ('VOLNUM',    12, 'TEXT'),
+            ('WHOLE',     13, 'TEXT'),
+            ('ENTERED',   15, 'DATE'),
+            #('BLANK1',    16, 'TEXT'),
+            ('COMMENTS2', 17, 'TEXT'),
+            #('BLANK2',    18, 'TEXT'),
+            #('BLANK3',    19, 'TEXT'),
+    """
+
     row_index_OUT        = 0
     row_index_DUE        = 1
     row_index_WHO        = 2
@@ -197,7 +279,7 @@ class MagazineEntry(RawEntry):
             ('RETURNED',   4, 'DATE'),
             ('Discard',    5, 'TEXT'),
             ('LOCATION',   6, 'TEXT'),
-            ('NUMBER',     7, 'TEXT'),
+            ('NUMBER',     7, 'NUMBER'),
             ('TITLE',      8, 'TEXT'),
             ('YEAR',       9, 'TEXT'),
             ('MONTH',     10, 'TEXT'),
@@ -215,10 +297,6 @@ class MagazineEntry(RawEntry):
     def __init__(self, index, row, xlrdworkbook):
         logger = logging.getLogger("import_library_books_xls."+self.__class__.__name__+".__init__()")
         logger.setLevel(logging.DEBUG)
-
-        self.row = row
-        self.entry={}
-
         self.extract_data(index, row, xlrdworkbook)
 
     @staticmethod
@@ -230,9 +308,9 @@ class MagazineEntry(RawEntry):
         entry = {}
         # sanity / type check cell data
     
-        if ((row[MagazineEntry.row_index_NUMBER].ctype == xlrd.XL_CELL_EMPTY) and
-            (row[MagazineEntry.row_index_LOCATION].ctype == xlrd.XL_CELL_EMPTY)):
-            return {}
+        #if ((row[MagazineEntry.row_index_NUMBER].ctype == xlrd.XL_CELL_EMPTY) and
+        #    (row[MagazineEntry.row_index_LOCATION].ctype == xlrd.XL_CELL_EMPTY)):
+        #    return {}
     
         b = MagazineEntry(i, row, xlrdworkbook)
     
@@ -254,6 +332,30 @@ class MagazineEntry(RawEntry):
 class MemberEntry(RawEntry):
     ENTRY_FORMAT = [
             ('NAME', 0, 'TEXT'),
+    ]
+
+    def __init__(self, index, row, xlrdworkbook):
+        logger = logging.getLogger("import_library_books_xls."+self.__class__.__name__+".__init__()")
+        logger.setLevel(logging.DEBUG)
+
+        self.row = row
+        self.entry={}
+
+        self.extract_data(index, row, xlrdworkbook)
+
+class VideoEntry(RawEntry):
+    ENTRY_FORMAT = [
+            ('TITLE', 0, 'TEXT'),
+            ('LC', 0, 'TEXT'),
+            ('!', 0, 'TEXT'),
+            ('LOCATION', 0, 'TEXT'),
+            ('Borrowed By', 0, 'TEXT'),
+            ('Checkout', 0, 'TEXT'),
+            ('Due', 0, 'DATE'),
+            ('Returned', 0, 'DATE'),
+            ('Libr', 0, 'DATE'),
+            ('COMMENT1', 0, 'DATE'),
+            ('COMMENT2', 0, 'DATE'),
     ]
 
     def __init__(self, index, row, xlrdworkbook):
@@ -466,6 +568,7 @@ def import_library_magazines_xls(xlrdworkbook):
     entry_numbers = {}
     duplicate_entries = []
 
+    entry_titles = {}
     entry_locations = {}
     entry_discard = {}
     entry_year = {}
@@ -484,7 +587,7 @@ def import_library_magazines_xls(xlrdworkbook):
         if not entry:
             continue
 
-        logger.debug(entry['number'])
+        #logger.debug(entry)
 
         if (entry['number']) in entry_numbers:
             #logger.debug(" ".join((str(x) for x in ( "duplicate entry:", i, entry))))
@@ -493,10 +596,12 @@ def import_library_magazines_xls(xlrdworkbook):
         else:
             entry_numbers[entry['number']]=i
 
+        entry_titles[entry['title']] = \
+            entry_titles.get(entry['title'], []) + [entry['number']]
+
         entry_locations[entry['location']] = \
             entry_locations.get(entry['location'], []) + [entry['number']]
             
-        """
         entry_discard[entry['discard']] = \
             entry_discard.get(entry['discard'], []) + [entry['number']]
 
@@ -511,10 +616,34 @@ def import_library_magazines_xls(xlrdworkbook):
 
         entry_volnum[entry['volnum']] = \
             entry_volnum.get(entry['volnum'], []) + [entry['number']]
-        """
 
         if ((entry['number']!='') and (entry['title']!='')):
             entries.append(entry)
+
+    if (True):
+        print "\nentry_title:"
+        for t in sorted([key for key in entry_titles.keys()]):
+            print "'{}'".format(t), len(entry_titles[t]), entry_titles[t] if (len(entry_titles[t]) < 10) else entry_titles[t][:10] + ["..."]
+
+    if (True):
+        print "\nentry_locations:"
+        for t in sorted([key for key in entry_locations.keys()]):
+            print "'{}'".format(t), len(entry_locations[t]), entry_locations[t] if (len(entry_locations[t]) < 10) else entry_locations[t][:10] + ["..."]
+
+    if (True):
+        print "\nentry_discard:"
+        for t in sorted([key for key in entry_discard.keys()]):
+            print "'{}'".format(t), len(entry_discard[t]), entry_discard[t] if (len(entry_discard[t]) < 10) else entry_discard[t][:10] + ["..."]
+
+    if (True):
+        print "\nentry_discard:"
+        for t in sorted([key for key in entry_discard.keys()]):
+            print "'{}'".format(t), len(entry_discard[t]), entry_discard[t] if (len(entry_discard[t]) < 10) else entry_discard[t][:10] + ["..."]
+
+    if (True):
+        print "\nentry_month:"
+        for t in sorted([key for key in entry_month.keys()]):
+            print "'{}'".format(t), len(entry_month[t]), entry_month[t] if (len(entry_month[t]) < 10) else entry_month[t][:10] + ["..."]
 
     return {
         'locations': entry_locations,

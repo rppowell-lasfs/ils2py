@@ -3,6 +3,14 @@ import xlrd
 import ils2py
 import ils2py.import_library_books_xls
 
+"""
+
+
+
+"""
+
+
+
 def import_library_books_from_xls():
     messages = ["Importing XLS"]
     form = FORM(
@@ -24,9 +32,9 @@ def import_library_books_from_xls():
 
         #ils2py.import_library_books_xls.check_headers(book)
         ils2py.import_library_books_xls.BookEntry.check_sheet(book.sheet_by_index(0))
-        data = ils2py.import_library_books_xls.import_library_books_xls(book)
 
-        #data = ils2py.import_library_books_xls.import_library_magazines_xls(book)
+        #data = ils2py.import_library_books_xls.import_library_books_xls(book)
+        data = ils2py.import_library_books_xls.import_library_magazines_xls(book)
 
         # import bibliographies to database
         if (False):
