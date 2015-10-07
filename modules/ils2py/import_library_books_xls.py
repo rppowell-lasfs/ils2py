@@ -10,16 +10,20 @@ import logging
 
 Modules for importing the library from xls spreadsheet
 
-xls spreadsheet row  -->  entry
+xls spreadsheet row  -->  entry  --> collation
 
 RawEntry
-* Invalid Data - TEXT
-** is not XL_CELL_TEXT
-** is XL_CELL_EMPTY
+* TODO: invalid entry checks
+** Invalid Data - TEXT
+*** is not XL_CELL_TEXT
+*** is XL_CELL_EMPTY
 
 * Invalid Data - DATE
 * Invalid Data - NUMBER
 
+collation
+* duplicate entry
+* entry locations, types, categories, etc
 
 """
 
@@ -399,6 +403,69 @@ def check_headers(xlrdworkbook):
     return True
 
 
+class EntryCollation:
+    def __init__(self):
+        self.entries=[]
+        self.entry_numbers={}
+        self.entry_duplicates=[]
+
+        self.entry_locations={}
+        self.entry_types={}
+        self.entry_authors={}
+        self.entry_coauthors={}
+        self.entry_publishers={}
+
+        self.circulations=[]
+        self.entry_members={}
+        self.entry_librarians={}
+
+    def add_entry(self, entry, entry_index):
+
+        if ((entry['number']!='') and (entry['title']!='')):
+            self.entries.append(entry)
+
+        if entry['number'] in self.entry_numbers:
+            self.entry_duplicates.append(
+                    [entry['number'], [self.entry_numbers[entry['number']], entry_index]]
+            )
+        else:
+            self.entry_numbers[entry['number']] = entry_index
+
+        self.entry_locations[entry['location']] = \
+            self.entry_locations.get(entry['location'], []) + [entry['number']]
+            
+        self.entry_types[entry['type']] = \
+            self.entry_types.get(entry['type'], []) + [entry['number']]
+
+        # bibliography info
+        if 'author' in entry:
+            self.entry_authors[entry['author']] = \
+                self.entry_authors.get(entry['author'], []) + [entry['number']]
+    
+        if 'coauthor' in entry:
+            self.entry_coauthors[entry['coauthor']] = \
+                self.entry_coauthors.get(entry['coauthor'], []) + [entry['number']]
+    
+        if 'publisher' in entry:
+            self.entry_publishers[entry['publisher']] = \
+                self.entry_publishers.get(entry['publisher'], []) + [entry['publisher']]
+
+        # circulation info
+        if 'WHO' in entry:
+            self.entry_members[entry['WHO']] = \
+                self.entry_members.get(entry['WHO'], []) + [entry['number']]
+
+        if 'LIB' in entry:
+            self.entry_librarians[entry['LIB']] = \
+                self.entry_librarians.get(entry['LIB'], []) + [entry['number']]
+
+
+        if ('OUT' in entry and 'DUE' in entry and 'WHO' in entry):
+            if ('RETURN' in entry):
+                pass
+            else:
+                self.circulations.append(entry)
+
 def import_library_books_xls(xlrdworkbook):
     """Import workflow:
     For XLS sheet named 'Books'
@@ -424,6 +491,8 @@ def import_library_books_xls(xlrdworkbook):
     entry_members = {}
     entry_librarians = {}
 
+    collation = EntryCollation()
+
     for i in range(1,sheet.nrows):
         entry = BookEntry.process_row_data(sheet, i, xlrdworkbook)
 
@@ -431,6 +500,8 @@ def import_library_books_xls(xlrdworkbook):
         
         if not entry:
             continue
+
+        collation.add_entry(entry, i)
 
         if (entry['number']) in entry_numbers:
             logger.debug(" ".join((str(x) for x in (
@@ -495,6 +566,7 @@ def import_library_books_xls(xlrdworkbook):
             i2 = k[1][1]
             print "\t".join((str(i), str(i1+1), sheet.row(i1)[BookEntry.row_index_AUTHOR].value, sheet.row(i1)[BookEntry.row_index_TITLE].value))
             print "\t".join((str(i), str(i2+1), sheet.row(i2)[BookEntry.row_index_AUTHOR].value, sheet.row(i2)[BookEntry.row_index_TITLE].value))
+            print ""
 
     if (False):
         print "\nentry_locations:"
@@ -653,3 +725,5 @@ def import_library_magazines_xls(xlrdworkbook):
 #        'volume': entry_volume,
 #        'volnum': entry_volnum,
     }
+
+

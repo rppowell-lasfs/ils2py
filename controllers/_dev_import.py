@@ -23,18 +23,23 @@ def import_library_books_from_xls():
         #tmp_str = request.vars.xls.file.read()
         #book = xlrd.open_workbook(request.vars.xls.file.read())
         # encoding_override="cp1252"
-        book = xlrd.open_workbook(file_contents=request.vars.xls.file.read(), encoding_override="cp1252")
-        messages.append("book={}".format(str(book)))
+        workbook = xlrd.open_workbook(file_contents=request.vars.xls.file.read(), encoding_override="cp1252")
+
+        #messages.append("workbook={}".format(str(workbook)))
+
+        # remove uploaded files - improves page toolbar() behavior
+        del request.post_vars['xls']
+        del request.vars['xls']
 
         #request._vars['xls'] = 'Undefined'
         #print str(request._vars['xls'])
         #print str(response._vars)
 
-        #ils2py.import_library_books_xls.check_headers(book)
-        ils2py.import_library_books_xls.BookEntry.check_sheet(book.sheet_by_index(0))
+        #ils2py.import_library_books_xls.check_headers(workbook)
+        ils2py.import_library_books_xls.BookEntry.check_sheet(workbook.sheet_by_index(0))
 
-        #data = ils2py.import_library_books_xls.import_library_books_xls(book)
-        data = ils2py.import_library_books_xls.import_library_magazines_xls(book)
+        data = ils2py.import_library_books_xls.import_library_books_xls(workbook)
+        #data = ils2py.import_library_books_xls.import_library_magazines_xls(book)
 
         # import bibliographies to database
         if (False):

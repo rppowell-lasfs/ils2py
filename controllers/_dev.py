@@ -32,7 +32,8 @@ def db_reset():
 def db_setup_scaffolding(): 
     messages = ["Setting up database..."]
     for ADMIN_GROUP in ils2py.db_defaults.ILS_ADMIN_GROUPS:
-        db.auth_group.insert(
+        db.auth_group.update_or_insert(
+            db.auth_group.role==ADMIN_GROUP['role'],
             role=ADMIN_GROUP['role'], description=ADMIN_GROUP['description']
         )
         messages.append("db.auth_group.insert(%s)"%(str(ADMIN_GROUP)))
@@ -55,42 +56,43 @@ def db_setup_scaffolding():
 def db_setup_test_users():
     messages = ["Setting up test users..."]
     
-    auth.add_membership(auth.id_group(role='Head Librarian'),
-        db.auth_user.insert(
-            username='HeadLibrarian', password=db.auth_user.password.validate('password')[0],
-            email='headlibrarian@test.com', first_name='HeadLibrarian', last_name='HeadLibrarian'
-        )
+    id=db.auth_user.update_or_insert(
+            db.auth_user.username=='UserHeadLibrarian',
+            username='UserHeadLibrarian', password=db.auth_user.password.validate('password')[0],
+            email='headlibrarian@test.com', first_name='UserHeadLibrarian', last_name='UserHeadLibrarian'
     )
-    messages.append("Created 'HeadLibrarian'")
+    if id:
+        auth.add_membership(auth.id_group(role='Head Librarian'),id)
+        messages.append("Created 'UserHeadLibrarian' {0}".format(id))
 
     for i in range(1,4):
-        db.auth_user.insert(
+        id=db.auth_user.update_or_insert(
+            db.auth_user.username=='User{:03d}'.format(i),
             username='User{:03d}'.format(i), password=db.auth_user.password.validate('password{:03d}'.format(i))[0],
             email='user{:03d}@test.com'.format(i), first_name='First{:03d}'.format(i), last_name='Last{:03d}'.format(i)
         )
-        messages.append("Created 'User{:03d}'".format(i))
+        if id:
+            messages.append("Created 'User{:03d}'".format(i))
 
     return dict(message=PRE("\n".join(messages)))
 
 def db_setup_test_items():
     messages = ["Setting up test items..."]
 
-    messages.append("Setting up persons...")
-    for i in range(1,4):
-        id = db.ils_person.insert(
-            full_name='PersonFull{:03d}'.format(i), 
-            search_name='PersonSearch{:03d}'.format(i), 
-            first_name='PersonFirst{:03d}'.format(i), 
-            last_name='PersonLast{:03d}'.format(i), 
-        )
-        messages.append("Created 'Person{:03d} ({})'".format(i, id))
-
     messages.append("Setting up publishers...")
     for i in range(1,4):
-        id = db.ils_publisher.insert(
+        id = db.ils_item_publisher.insert(
             name='Publisher{:03d}'.format(i)
         )
         messages.append("Created 'Publisher{:03d} ({})'".format(i, id))
+
+    messages.append("Setting up persons...")
+    for i in range(1,4):
+        id = db.ils_item_person.update_or_insert(
+            full_name='PersonFull{:03d}'.format(i), 
+        )
+        messages.append("Created 'Person{:03d} ({})'".format(i, id))
+
 
     messages.append("Setting up book items...")
 

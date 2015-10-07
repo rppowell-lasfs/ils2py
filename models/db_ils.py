@@ -10,29 +10,29 @@ def natural_key(string_):
 
 db.define_table(
     'ils_biblio',
-    Field('title'),
-    Field('isbn1'),
+    Field('title', 'string'),
+    Field('isbn1', 'string'),
 )
 
 db.define_table(
     'ils_biblio_publisher',
-    Field('name'),
+    Field('name', 'string'),
     format = '%(name)s'
 )
 
 db.define_table(
     'ils_biblio_person',
-    Field('full_name'),
-    Field('search_name'),
-    Field('first_name'),
-    Field('last_name'),
+    Field('full_name', 'string'),
+    Field('search_name', 'string'),
+    Field('first_name', 'string'),
+    Field('last_name', 'string'),
     format = '%(full_name)s'
 )
 
 db.define_table(
     'ils_biblio_person_type',
-    Field('name'),
-    Field('description'),
+    Field('name', 'string'),
+    Field('description', 'string'),
     format = '%(name)s'
 )
 
@@ -88,18 +88,17 @@ db.define_table(
 )
 
 db.define_table(
-    'ils_publisher',
+    'ils_item_publisher',
     Field('name', 'string'),
     Field('description', 'string'),
     format = '%(name)s'
 )
 
 db.define_table(
-    'ils_person',
-    Field('name', 'string'),
+    'ils_item_person',
+    Field('full_name', 'string'),
     format = '%(name)s'
 )
-
 
 db.define_table(
     'ils_item',
@@ -108,8 +107,9 @@ db.define_table(
     Field('item_type', db.ils_item_type),
     Field('item_location', db.ils_item_location),
     Field('item_state', db.ils_item_state),
-    Field('item_publisher', db.ils_publisher),
-    Field('item_author', db.ils_person),
+    Field('item_publisher', db.ils_item_publisher),
+    Field('item_author', db.ils_item_person),
+    Field('item_coauthor', db.ils_item_person),
     format = '%(item_id)s:%(item_title)s'
 )
 
@@ -124,6 +124,37 @@ db.ils_item.item_type.widget = lambda f, v: SELECT(['']+[OPTION(i.name, _value=i
 ##db.ils_item.item_location.widget = lambda f, v: SELECT([OPTION(i.name, _value=i.id) for i in sorted_ils_item_locations], _name=f.name, _id="%s_%s" % (f._tablename, f.name), _value=v, value=v)
 db.ils_item.item_location.widget = lambda f, v: SELECT(['']+[OPTION(i.name, _value=i.id) for i in sorted_ils_item_locations], _name=f.name, _id="%s_%s" % (f._tablename, f.name), _value=v, value=v)
 
+################################################################################
+
+db.define_table(
+    'ils_item_x_person_type',
+    Field('name', 'string'),
+    Field('description', 'string'),
+    format = '%(name)s'
+)
+
+db.define_table(
+    'ils_item_x_person',
+    Field('item_item', db.ils_item),
+    Field('item_person', db.ils_item_person),
+    Field('item_x_person_type', db.ils_item_person),
+    format = '%(name)s'
+)
+
+db.define_table(
+    'ils_item_tag',
+    Field('name', 'string'),
+    Field('description', 'string'),
+    Field('parent', 'reference ils_item_tag')
+)
+
+db.define_table(
+    'ils_item_x_tag',
+    Field('ils_item', db.ils_item),
+    Field('ils_item_tag', db.ils_item_tag)
+)
+
+################################################################################
 
 db.define_table(
     'ils_item_event_type',
@@ -138,7 +169,7 @@ db.define_table(
 )
 
 db.define_table(
-    'ils_item_loan',
+    'ils_item_circulation',
     Field('ils_item', db.ils_item),
     Field('checked_out_on', 'datetime'),
     Field('checked_out_by', db.auth_user),
@@ -147,18 +178,17 @@ db.define_table(
     Field('checked_in_by', db.auth_user),
 )
 
-db.define_table(
-    'ils_item_tag',
-    Field('name', 'string'),
-    Field('description', 'string'),
-    Field('parent', 'reference ils_item_tag')
-)
-
-db.define_table(
-    'ils_item_x_item_tag',
-    Field('ils_item', db.ils_item),
-    Field('ils_item_tag', db.ils_item)
-)
-
 ################################################################################
+
+db.define_table(
+    'ils_cart',
+    Field('person', db.auth_user),
+    auth.signature
+)
+
+db.define_table(
+    'ils_cart_x_item',
+    Field('ils_cart', db.ils_cart),
+    Field('ils_item', db.ils_item)
+)
 
