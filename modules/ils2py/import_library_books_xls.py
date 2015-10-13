@@ -31,60 +31,137 @@ collation
 logger = logging.getLogger("web2py.app.ils2py.import_library_books_xls")
 logger.setLevel(logging.DEBUG)
 
+
+
+class RawEntryDataText:
+    def read(self, cell):
+        logger = logging.getLogger("import_library_books_xls."+self.__class__.__name__+".read()")
+        logger.setLevel(logging.DEBUG)
+
+        self.cell = cell
+        if (self.cell.ctype == xlrd.XL_CELL_ERROR):
+            #logger.error("XL_CELL_ERROR:" + xlrd.error_text_from_code[self.cell.value])
+            self.data = None
+            return None
+
+        elif (self.cell.ctype == xlrd.XL_CELL_TEXT):
+            self.data = self.cell.value.encode('utf-8')
+            return self.cell.value.encode('utf-8')
+
+        elif (self.cell.ctype == xlrd.XL_CELL_EMPTY):
+            self.data = None
+            return None
+
+        else:
+            self.data = None
+            raise Exception(str(self.cell))
+
+
+class RawEntryDataNumber:
+    def read(self, cell):
+        logger = logging.getLogger("import_library_books_xls."+self.__class__.__name__+".read()")
+        logger.setLevel(logging.DEBUG)
+        self.cell = cell
+
+        if (self.cell.ctype == xlrd.XL_CELL_ERROR):
+            #logger.error("XL_CELL_ERROR:"+ xlrd.error_text_from_code[self.cell.value])
+            return None
+
+        elif (self.cell.ctype == xlrd.XL_CELL_NUMBER):
+            return int(self.cell.value)
+
+        elif (self.cell.ctype == xlrd.XL_CELL_EMPTY):
+            return None
+
+        else:
+            raise Exception(str(self.cell))
+
+
+class RawEntryDataDate:
+    def read(self, cell, xlrdworkbook):
+        logger = logging.getLogger("import_library_books_xls."+self.__class__.__name__+".read()")
+        logger.setLevel(logging.DEBUG)
+
+        self.cell = cell
+        if (self.cell.ctype == xlrd.XL_CELL_ERROR):
+            #logger.error("XL_CELL_ERROR:"+ xlrd.error_text_from_code[self.cell.value])
+            return None
+    
+        elif (self.cell.ctype == xlrd.XL_CELL_DATE and self.cell.value != ''):
+            return datetime.datetime(*xlrd.xldate_as_tuple(self.cell.value, xlrdworkbook.datemode))
+    
+        elif (self.cell.ctype == xlrd.XL_CELL_TEXT):
+            if (self.cell.value == '' or self.cell.value == ' '):
+                return None
+            else:
+                #raise Exception(str(self.cell))
+                return None
+    
+        elif (self.cell.ctype == xlrd.XL_CELL_EMPTY):
+            return None
+    
+        else:
+            raise Exception(str(self.cell))
+
 class RawEntryDataType:
-    def __init__(self, column_name, index, datatype):
-        self.column_name = column_name
+    TEXT, NUMBER, DATE = range(3)
+
+    @staticmethod
+    def datatype_string_to_enum(s):
+        return ['TEXT','NUMBER','DATE'].index(s)
+
+    def __init__(self, name, index, datatype):
+        self.name=name
         self.index=index
         self.datatype=datatype
+
+    def read(self, row, xlrdworkbook, rowindex):
+        logger = logging.getLogger("import_library_books_xls."+self.__class__.__name__+".read()")
+        logger.setLevel(logging.DEBUG)
+
+        self.cell = row[self.index]
+        if self.datatype==self.TEXT:
+            try:
+                r = RawEntryDataText()
+                r.read(self.cell)
+                data = r.data
+            except Exception as e:
+                logger.debug(" ".join((str(x) for x in (e, self.name, self.index, self.cell, row, rowindex))))
+                data = None
+
+        elif self.datatype==self.NUMBER:
+            try:
+                r = RawEntryDataNumber()
+                data =r.read(self.cell)
+            except Exception as e:
+                logger.debug(" ".join((str(x) for x in (e, self.name, self.index, self.cell, row, rowindex))))
+                data = None
+    
+        elif self.datatype==self.DATE:
+            try:
+                r = RawEntryDataDate()
+                data = r.read(self.cell, xlrdworkbook)
+            except Exception as e:
+                logger.debug(" ".join((str(x) for x in (e, self.name, self.index, self.cell, row, rowindex))))
+                data = None
+
+        return data
+
 
 class RawEntry:
     ENTRY_FORMAT=[]
 
-    def extract_data(self, index, row, xlrdworkbook):
+    def extract_data(self, rowindex, row, xlrdworkbook):
         logger = logging.getLogger("import_library_books_xls."+self.__class__.__name__+".__init__()")
         logger.setLevel(logging.DEBUG)
 
         self.row = row
         self.entry={}
 
-        for n,i,t in self.ENTRY_FORMAT:
-            cell = row[i]
-            if t=='TEXT':
-                if (cell.ctype == xlrd.XL_CELL_TEXT):
-                    self.entry[n] = cell.value.encode('utf-8')
-                    #logger.info(str(i)+":"+" ".join((str(x) for x in (n, cell, index, row))))
-                elif (cell.ctype == xlrd.XL_CELL_EMPTY):
-                    #logger.debug(" ".join((str(x) for x in (n, cell, index, row))))
-                    self.entry[n] = None
-                else:
-                    #logger.debug(" ".join((str(x) for x in (n, cell, index, row))))
-                    self.entry[n] = None
-            elif t=='NUMBER':
-                if (cell.ctype == xlrd.XL_CELL_NUMBER):
-                    self.entry[n] = int(cell.value)
-                    #logger.info(str(i)+":"+" ".join((str(x) for x in (n, cell, index, row))))
-                elif (cell.ctype == xlrd.XL_CELL_EMPTY):
-                    self.entry[n] = None
-                else:
-                    logger.debug("ctype != xlrd.XL_CELL_NUMBER:" + str(cell.ctype))
-                    logger.debug(" ".join((str(x) for x in (n, cell, index, row))))
-                    self.entry[n] = None
-            elif t=='DATE':
-                if (cell.ctype == xlrd.XL_CELL_DATE and cell.value != ''):
-                    self.entry[n] = datetime.datetime(*xlrd.xldate_as_tuple(cell.value, xlrdworkbook.datemode))
-                    #logger.info(str(i)+":"+" ".join((str(x) for x in (n, cell, index, row))))
-                elif (cell.ctype == xlrd.XL_CELL_TEXT):
-                    if (cell.value == '' or cell.value == ' '):
-                        self.entry[n] = None
-                    else:
-                        logger.debug(" ".join((str(x) for x in (n, cell, index, row))))
-                        self.entry[n] = None
-                elif (cell.ctype == xlrd.XL_CELL_EMPTY):
-                    self.entry[n] = None
-                else:
-                    logger.debug("ctype != xlrd.XL_CELL_DATE:" + str(cell.ctype))
-                    logger.debug(" ".join((str(x) for x in (n, cell, index, row))))
-                    self.entry[n] = None
+        for entry in self.ENTRY_FORMAT:
+            data = entry.read(row, xlrdworkbook, rowindex)
+            self.entry[entry.name] = data
+
 
 
 class BookEntry(RawEntry):
@@ -136,24 +213,24 @@ class BookEntry(RawEntry):
     row_index_MSRP      = 18;  str_MSRP      = 'MSRP'
 
     ENTRY_FORMAT=[
-            ('CK_OUT',    0, 'DATE'),
-            ('DUE',       1, 'DATE'),
-            ('WHO',       2, 'TEXT'),
-            ('LIB',       3, 'TEXT'),
-            ('RETURN',    4, 'DATE'),
-            ('LOCATION',  5, 'TEXT'),
-            ('TYPE',      6, 'TEXT'),
-            ('NUMBER',    7, 'NUMBER'),
-            ('TITLE',     8, 'TEXT'),
-            ('AUTHOR',    9, 'TEXT'),
-            ('COAUTHOR', 10, 'TEXT'),
-            ('COMMENTS', 11, 'TEXT'),
-            ('PUBLISHER',12, 'TEXT'),
-            ('SERIES',   13, 'TEXT'),
-            ('ENTERED',  14, 'TEXT'),
-            ('ISBN',     15, 'TEXT'),
-            ('DONOR',    16, 'TEXT'),
-            ('MSRP',     17, 'TEXT'),
+            RawEntryDataType('CK_OUT',    0, RawEntryDataType.DATE),
+            RawEntryDataType('DUE',       1, RawEntryDataType.DATE),
+            RawEntryDataType('WHO',       2, RawEntryDataType.TEXT),
+            RawEntryDataType('LIB',       3, RawEntryDataType.TEXT),
+            RawEntryDataType('RETURN',    4, RawEntryDataType.DATE),
+            RawEntryDataType('LOCATION',  5, RawEntryDataType.TEXT),
+            RawEntryDataType('TYPE',      6, RawEntryDataType.TEXT),
+            RawEntryDataType('NUMBER',    7, RawEntryDataType.NUMBER),
+            RawEntryDataType('TITLE',     8, RawEntryDataType.TEXT),
+            RawEntryDataType('AUTHOR',    9, RawEntryDataType.TEXT),
+            RawEntryDataType('COAUTHOR', 10, RawEntryDataType.TEXT),
+            RawEntryDataType('COMMENTS', 11, RawEntryDataType.TEXT),
+            RawEntryDataType('PUBLISHER',12, RawEntryDataType.TEXT),
+            RawEntryDataType('SERIES',   13, RawEntryDataType.TEXT),
+            RawEntryDataType('ENTERED',  14, RawEntryDataType.DATE),
+            RawEntryDataType('ISBN',     15, RawEntryDataType.TEXT),
+            RawEntryDataType('DONOR',    16, RawEntryDataType.TEXT),
+            RawEntryDataType('MSRP',     17, RawEntryDataType.TEXT),
     ]
 
     def __init__(self, index, row, xlrdworkbook):
@@ -276,24 +353,24 @@ class MagazineEntry(RawEntry):
     row_index_BLANK2    = 18
     row_index_BLANK3    = 19
     ENTRY_FORMAT = [
-            ('OUT',        0, 'DATE'),
-            ('DUE',        1, 'DATE'),
-            ('WHO',        2, 'TEXT'),
-            ('LIB',        3, 'TEXT'),
-            ('RETURNED',   4, 'DATE'),
-            ('Discard',    5, 'TEXT'),
-            ('LOCATION',   6, 'TEXT'),
-            ('NUMBER',     7, 'NUMBER'),
-            ('TITLE',      8, 'TEXT'),
-            ('YEAR',       9, 'TEXT'),
-            ('MONTH',     10, 'TEXT'),
-            ('VOLUME',    11, 'TEXT'),
-            ('VOLNUM',    12, 'TEXT'),
-            ('WHOLE',     13, 'TEXT'),
-            ('COMMENTS1', 14, 'TEXT'),
-            ('ENTERED',   15, 'DATE'),
+            RawEntryDataType('OUT',        0, RawEntryDataType.DATE),
+            RawEntryDataType('DUE',        1, RawEntryDataType.DATE),
+            RawEntryDataType('WHO',        2, RawEntryDataType.TEXT),
+            RawEntryDataType('LIB',        3, RawEntryDataType.TEXT),
+            RawEntryDataType('RETURNED',   4, RawEntryDataType.DATE),
+            RawEntryDataType('Discard',    5, RawEntryDataType.TEXT),
+            RawEntryDataType('LOCATION',   6, RawEntryDataType.TEXT),
+            RawEntryDataType('NUMBER',     7, RawEntryDataType.NUMBER),
+            RawEntryDataType('TITLE',      8, RawEntryDataType.TEXT),
+            RawEntryDataType('YEAR',       9, RawEntryDataType.TEXT),
+            RawEntryDataType('MONTH',     10, RawEntryDataType.TEXT),
+            RawEntryDataType('VOLUME',    11, RawEntryDataType.TEXT),
+            RawEntryDataType('VOLNUM',    12, RawEntryDataType.TEXT),
+            RawEntryDataType('WHOLE',     13, RawEntryDataType.TEXT),
+            RawEntryDataType('COMMENTS1', 14, RawEntryDataType.TEXT),
+            RawEntryDataType('ENTERED',   15, RawEntryDataType.DATE),
             #('BLANK1',    16, 'TEXT'),
-            ('COMMENTS2', 17, 'TEXT'),
+            RawEntryDataType('COMMENTS2', 17, RawEntryDataType.TEXT),
             #('BLANK2',    18, 'TEXT'),
             #('BLANK3',    19, 'TEXT'),
     ]
@@ -335,7 +412,7 @@ class MagazineEntry(RawEntry):
 
 class MemberEntry(RawEntry):
     ENTRY_FORMAT = [
-            ('NAME', 0, 'TEXT'),
+            RawEntryDataType('NAME', 0, RawEntryDataType.TEXT),
     ]
 
     def __init__(self, index, row, xlrdworkbook):
@@ -349,17 +426,17 @@ class MemberEntry(RawEntry):
 
 class VideoEntry(RawEntry):
     ENTRY_FORMAT = [
-            ('TITLE', 0, 'TEXT'),
-            ('LC', 0, 'TEXT'),
-            ('!', 0, 'TEXT'),
-            ('LOCATION', 0, 'TEXT'),
-            ('Borrowed By', 0, 'TEXT'),
-            ('Checkout', 0, 'TEXT'),
-            ('Due', 0, 'DATE'),
-            ('Returned', 0, 'DATE'),
-            ('Libr', 0, 'DATE'),
-            ('COMMENT1', 0, 'DATE'),
-            ('COMMENT2', 0, 'DATE'),
+            RawEntryDataType('TITLE', 0, RawEntryDataType.TEXT),
+            RawEntryDataType('LC', 0, RawEntryDataType.TEXT),
+            RawEntryDataType('!', 0, RawEntryDataType.TEXT),
+            RawEntryDataType('LOCATION', 0, RawEntryDataType.TEXT),
+            RawEntryDataType('Borrowed By', 0, RawEntryDataType.TEXT),
+            RawEntryDataType('Checkout', 0, RawEntryDataType.TEXT),
+            RawEntryDataType('Due', 0, RawEntryDataType.DATE),
+            RawEntryDataType('Returned', 0, RawEntryDataType.DATE),
+            RawEntryDataType('Libr', 0, RawEntryDataType.DATE),
+            RawEntryDataType('COMMENT1', 0, RawEntryDataType.DATE),
+            RawEntryDataType('COMMENT2', 0, RawEntryDataType.DATE),
     ]
 
     def __init__(self, index, row, xlrdworkbook):
