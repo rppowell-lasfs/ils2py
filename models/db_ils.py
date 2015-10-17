@@ -9,10 +9,21 @@ def natural_key(string_):
 ################################################################################
 
 db.define_table(
-    'ils_biblio',
-    Field('title', 'string'),
-    Field('isbn1', 'string'),
+    'ils_biblio_type',
+    Field('name', 'string'),
+    Field('description', 'string'),
+    format = '%(name)s'
 )
+sorted_ils_biblio_types = sorted(db(db.ils_biblio_type.id > 0).select(), key=lambda x: natural_key(x.name))
+    
+db.define_table(
+    'ils_biblio',
+    Field('biblio_title', 'string'),
+    Field('biblio_type', 'string'),
+    Field('biblio_isbn', 'string'),
+)
+
+db.ils_biblio.biblio_type.widget = lambda f, v: SELECT(['']+[OPTION(i.name, _value=i.id) for i in sorted_ils_biblio_types], _name=f.name, _id="%s_%s" % (f._tablename, f.name), _value=v, value=v)
 
 db.define_table(
     'ils_biblio_publisher',
@@ -97,7 +108,7 @@ db.define_table(
 db.define_table(
     'ils_item_person',
     Field('full_name', 'string'),
-    format = '%(name)s'
+    format = '%(full_name)s'
 )
 
 db.define_table(
@@ -110,6 +121,10 @@ db.define_table(
     Field('item_publisher', db.ils_item_publisher),
     Field('item_author', db.ils_item_person),
     Field('item_coauthor', db.ils_item_person),
+    Field('item_series', 'string'),
+    Field('item_isbn', 'string'),
+    Field('item_msrp', 'string'),
+    Field('item_biblio', db.ils_biblio),
     format = '%(item_id)s:%(item_title)s'
 )
 
@@ -117,6 +132,7 @@ db.ils_item.item_id.requires=IS_NOT_IN_DB(db,'ils_item.item_id')
 db.ils_item.item_type.requires=IS_IN_DB(db,'ils_item_type.id', '%(name)s')
 db.ils_item.item_location.requires=IS_IN_DB(db,'ils_item_location.id', '%(name)s')
 db.ils_item.item_state.requires=IS_EMPTY_OR(IS_IN_DB(db,'ils_item_state.id', '%(name)s'))
+db.ils_item.item_biblio.requires=IS_EMPTY_OR(IS_IN_DB(db,'ils_biblio.id', '%(biblio_title)s'))
 
 #db.ils_item.item_type.widget = lambda f, v: SELECT([OPTION(i.name, _value=i.id) for i in sorted_ils_item_types], _name=f.name, _id="%s_%s" % (f._tablename, f.name), _value=v, value=v)
 db.ils_item.item_type.widget = lambda f, v: SELECT(['']+[OPTION(i.name, _value=i.id) for i in sorted_ils_item_types], _name=f.name, _id="%s_%s" % (f._tablename, f.name), _value=v, value=v)
@@ -125,21 +141,6 @@ db.ils_item.item_type.widget = lambda f, v: SELECT(['']+[OPTION(i.name, _value=i
 db.ils_item.item_location.widget = lambda f, v: SELECT(['']+[OPTION(i.name, _value=i.id) for i in sorted_ils_item_locations], _name=f.name, _id="%s_%s" % (f._tablename, f.name), _value=v, value=v)
 
 ################################################################################
-
-db.define_table(
-    'ils_item_x_person_type',
-    Field('name', 'string'),
-    Field('description', 'string'),
-    format = '%(name)s'
-)
-
-db.define_table(
-    'ils_item_x_person',
-    Field('item_item', db.ils_item),
-    Field('item_person', db.ils_item_person),
-    Field('item_x_person_type', db.ils_item_person),
-    format = '%(name)s'
-)
 
 db.define_table(
     'ils_item_tag',

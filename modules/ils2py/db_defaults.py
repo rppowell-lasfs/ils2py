@@ -7,6 +7,11 @@ ILS_ADMIN_GROUPS = [
     { 'role':'Guest', 'description':'LASFS Guest' }
 ]
 
+ILS_BIBLIO_PERSON_TYPES = [
+    { 'name':"Author", 'description':""},
+    { 'name':"Co-Author", 'description':""},
+    { 'name':"Editor", 'description':""},
+]
 
 ILS_ITEM_TYPES = [
     { 'name':"Art", 'description':""},
@@ -105,9 +110,4 @@ ILS_ITEM_EVENT_TYPES = [
 ]
 
 
-ILS_ITEM_X_PERSON_TYPES = [
-    { 'name':"Author", 'description':""},
-    { 'name':"Co-Author", 'description':""},
-    { 'name':"Editor", 'description':""},
-]
 

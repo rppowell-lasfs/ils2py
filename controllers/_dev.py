@@ -39,11 +39,19 @@ def db_setup_scaffolding():
         messages.append("db.auth_group.insert(%s)"%(str(ADMIN_GROUP)))
 
     for n, s in [ 
+            ('ils_biblio_person_type', ils2py.db_defaults.ILS_BIBLIO_PERSON_TYPES), 
+    ]:
+        for i in s:
+            db[n].insert(
+                name=i['name'], description=i['description']
+            )
+            messages.append("db.%s.insert(%s)"%(n,str(i)))
+
+    for n, s in [ 
             ('ils_item_type', ils2py.db_defaults.ILS_ITEM_TYPES), 
             ('ils_item_location', ils2py.db_defaults.ILS_ITEM_LOCATIONS), 
             ('ils_item_state', ils2py.db_defaults.ILS_ITEM_STATES), 
             ('ils_item_event_type', ils2py.db_defaults.ILS_ITEM_EVENT_TYPES), 
-            ('ils_item_x_person_type', ils2py.db_defaults.ILS_ITEM_X_PERSON_TYPES), 
     ]:
         for i in s:
             db[n].insert(
