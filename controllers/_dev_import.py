@@ -38,7 +38,37 @@ def import_library_books_from_xls():
         #ils2py.import_library_books_xls.check_headers(workbook)
         ils2py.import_library_books_xls.BookEntry.check_sheet(workbook.sheet_by_index(0))
 
-        data = ils2py.import_library_books_xls.import_library_books_xls(workbook)
+        library = ils2py.import_library_books_xls.LibraryXLS()
+        library.import_library_books_xls(workbook)
+
+        #data['entry_locations']=[[x, len(library.library_locations[x])] for x in sorted(library.library_locations.keys())]
+        data['entry_locations']=TABLE(_border="1", *[TR(*rows) for rows in 
+            [[x, len(library.library_locations[x])] for x in sorted(library.library_locations.keys())]
+        ])
+        
+        #data['entry_types']=[[x, len(library.library_types[x])] for x in sorted(library.library_types.keys())]
+        data['entry_types']=TABLE(_border="1", *[TR(*rows) for rows in 
+            [[x, len(library.library_types[x])] for x in sorted(library.library_types.keys())]
+        ])
+
+        #data['entry_publishers']=[[x, len(library.library_publishers[x])] for x in sorted(library.library_publishers.keys())]
+        data['entry_publishers']=TABLE(_border="1", *[TR(*rows) for rows in 
+            [[x, len(library.library_publishers[x])] for x in sorted(library.library_publishers.keys())]
+        ])
+
+        #data['entry_authors']=[[x, len(library.library_authors[x])] for x in sorted(library.library_authors.keys())]
+        data['entry_authors']=TABLE(_border="1", *[TR(*rows) for rows in 
+            [[x, len(library.library_authors[x])] for x in sorted(library.library_authors.keys())]
+        ])
+        #data['entry_coauthors']=[[x, len(library.library_coauthors[x])] for x in sorted(library.library_coauthors.keys())]
+        data['entry_coauthors']=TABLE(_border="1", *[TR(*rows) for rows in 
+            [[x, len(library.library_coauthors[x])] for x in sorted(library.library_coauthors.keys())]
+        ])
+
+        #data['entry_authors']=library.library_authors
+        #data['entry_coauthors']=library.library_coauthors
+
+        #data = ils2py.import_library_books_xls.import_library_books_xls(workbook)
         #data = ils2py.import_library_books_xls.import_library_magazines_xls(book)
 
         # import bibliographies to database
