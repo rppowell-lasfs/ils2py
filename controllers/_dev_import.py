@@ -1,7 +1,11 @@
 # -*- coding: utf-8 -*-
 import xlrd
+
+from gluon.custom_import import track_changes
+track_changes(True)
+
 import ils2py
-import ils2py.import_library_books_xls
+import ils2py.import_library_xls
 
 """
 
@@ -36,9 +40,8 @@ def import_library_books_from_xls():
         #print str(response._vars)
 
         #ils2py.import_library_books_xls.check_headers(workbook)
-        ils2py.import_library_books_xls.BookEntry.check_sheet(workbook.sheet_by_index(0))
 
-        library = ils2py.import_library_books_xls.LibraryXLS()
+        library = ils2py.import_library_xls.LibraryXLS()
         library.import_library_books_xls(workbook)
 
         #data['entry_locations']=[[x, len(library.library_locations[x])] for x in sorted(library.library_locations.keys())]

@@ -73,13 +73,13 @@ db.define_table(
 ################################################################################
 
 db.define_table(
-    'ils_item_type',
+    'ils_item_state',
     Field('name', 'string'),
     Field('description', 'string'),
     format = '%(name)s'
 )
+sorted_ils_item_states = sorted(db(db.ils_item_state.id > 0).select(), key=lambda x: natural_key(x.name))
 
-sorted_ils_item_types = sorted(db(db.ils_item_type.id > 0).select(), key=lambda x: natural_key(x.name))
 
 db.define_table(
     'ils_item_location',
@@ -87,16 +87,26 @@ db.define_table(
     Field('description', 'string'),
     format = '%(name)s'
 )
-
 sorted_ils_item_locations = sorted(db(db.ils_item_location.id > 0).select(), key=lambda x: natural_key(x.name))
 
 
 db.define_table(
-    'ils_item_state',
+    'ils_item_type',
     Field('name', 'string'),
     Field('description', 'string'),
     format = '%(name)s'
 )
+sorted_ils_item_types = sorted(db(db.ils_item_type.id > 0).select(), key=lambda x: natural_key(x.name))
+
+
+db.define_table(
+    'ils_item_condition',
+    Field('name', 'string'),
+    Field('description', 'string'),
+    format = '%(name)s'
+)
+sorted_ils_item_conditions = sorted(db(db.ils_item_condition.id > 0).select(), key=lambda x: natural_key(x.name))
+
 
 db.define_table(
     'ils_item_publisher',
@@ -115,15 +125,23 @@ db.define_table(
     'ils_item',
     Field('item_id', 'string'),
     Field('item_title', 'string'),
-    Field('item_type', db.ils_item_type),
     Field('item_location', db.ils_item_location),
+    Field('item_type', db.ils_item_type),
     Field('item_state', db.ils_item_state),
+    Field('item_condition', db.ils_item_condition),
+    Field('item_year', 'string'),
+    Field('item_month', 'string'),
+    Field('item_volume', 'string'),
+    Field('item_volnum', 'string'),
+    Field('item_whole', 'string'),
     Field('item_publisher', db.ils_item_publisher),
     Field('item_author', db.ils_item_person),
     Field('item_coauthor', db.ils_item_person),
     Field('item_series', 'string'),
+    Field('item_entered', 'date'),
     Field('item_isbn', 'string'),
     Field('item_msrp', 'string'),
+    Field('item_donor', 'string'),
     Field('item_biblio', db.ils_biblio),
     format = '%(item_id)s:%(item_title)s'
 )
